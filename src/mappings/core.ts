@@ -22,7 +22,8 @@ import {
   createLiquidityPosition,
   ZERO_BD,
   BI_18,
-  createLiquiditySnapshot
+  createLiquiditySnapshot,
+  exponentToBigInt
 } from './helpers'
 
 function isCompleteMint(mintId: string): boolean {
@@ -31,7 +32,7 @@ function isCompleteMint(mintId: string): boolean {
 
 export function handleTransfer(event: Transfer): void {
   // ignore initial transfers for first adds
-  if (event.params.to.toHexString() == ADDRESS_ZERO && event.params.value.equals(BigInt.fromI32(1000))) {
+  if (event.params.to.toHexString() == ADDRESS_ZERO && event.params.amount.equals(BigInt.fromI32(1000))) {
     return
   }
 
@@ -49,7 +50,7 @@ export function handleTransfer(event: Transfer): void {
   let pairContract = PairContract.bind(event.address)
 
   // liquidity token amount being transfered
-  let value = convertTokenToDecimal(event.params.value, BI_18)
+  let value = convertTokenToDecimal(event.params.amount, BI_18)
 
   // get or create transaction
   let transaction = Transaction.load(transactionHash)
@@ -215,6 +216,7 @@ export function handleSync(event: Sync): void {
   let token0 = Token.load(pair.token0)
   let token1 = Token.load(pair.token1)
   let uniswap = UniswapFactory.load(FACTORY_ADDRESS)
+  let pairContract = PairContract.bind(Address.fromString(pair.id))
 
   // reset factory liquidity by subtracting onluy tarcked liquidity
   uniswap.totalLiquidityETH = uniswap.totalLiquidityETH.minus(pair.trackedReserveETH as BigDecimal)
@@ -226,9 +228,9 @@ export function handleSync(event: Sync): void {
   pair.reserve0 = convertTokenToDecimal(event.params.reserve0, token0.decimals)
   pair.reserve1 = convertTokenToDecimal(event.params.reserve1, token1.decimals)
 
-  if (pair.reserve1.notEqual(ZERO_BD)) pair.token0Price = pair.reserve0.div(pair.reserve1)
+  if (pair.reserve1.notEqual(ZERO_BD)) pair.token0Price = convertTokenToDecimal(pairContract.current(Address.fromString(token1.id), exponentToBigInt(token1.decimals)), token0.decimals)
   else pair.token0Price = ZERO_BD
-  if (pair.reserve0.notEqual(ZERO_BD)) pair.token1Price = pair.reserve1.div(pair.reserve0)
+  if (pair.reserve0.notEqual(ZERO_BD)) pair.token1Price = convertTokenToDecimal(pairContract.current(Address.fromString(token0.id), exponentToBigInt(token0.decimals)), token1.decimals)
   else pair.token1Price = ZERO_BD
 
   pair.save()
@@ -238,8 +240,8 @@ export function handleSync(event: Sync): void {
   bundle.ethPrice = getEthPriceInUSD()
   bundle.save()
 
-  token0.derivedETH = findEthPerToken(token0 as Token)
-  token1.derivedETH = findEthPerToken(token1 as Token)
+  token0.derivedETH = findEthPerToken(token0 as Token, pair.stable)
+  token1.derivedETH = findEthPerToken(token1 as Token, pair.stable)
   token0.save()
   token1.save()
 
