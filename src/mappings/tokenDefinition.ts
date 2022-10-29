@@ -66,6 +66,33 @@ export class TokenDefinition {
       BigInt.fromI32(18)
     );
     staticDefinitions.push(tokenEth);
+    
+    // Add cINU
+    let tokenCinu = new TokenDefinition(
+      Address.fromString('0x7264610a66eca758a8ce95cf11ff5741e1fd0455'),
+      'cINU',
+      'cINU',
+      BigInt.fromI32(18)
+    );
+    staticDefinitions.push(tokenCinu);
+
+    // Add ENCANTO
+    let tokenEncanto = new TokenDefinition(
+    Address.fromString('0x373a8cd983948c5c20759dfae763d3bb7790f383'),
+      'ENCANTO',
+      'ENCANTO',
+      BigInt.fromI32(18)
+    );
+    staticDefinitions.push(tokenEncanto);
+
+    // Add RAB
+    let tokenRab = new TokenDefinition(
+      Address.fromString('0x241f6a1ea972eedb05f76e25179347719e4e8b72'),
+      'RAB',
+      'RAB',
+      BigInt.fromI32(18)
+    );
+    staticDefinitions.push(tokenRab);
 
     // Add wCANTO
     let tokenWeth = new TokenDefinition(

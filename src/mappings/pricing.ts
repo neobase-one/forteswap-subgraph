@@ -3,15 +3,15 @@ import { Pair, Token, Bundle } from '../types/schema'
 import { BigDecimal, Address, BigInt } from '@graphprotocol/graph-ts/index'
 import { ZERO_BD, factoryContract, ADDRESS_ZERO, ONE_BD, UNTRACKED_PAIRS, exponentToBigInt, convertTokenToDecimal } from './helpers'
 import { Pair as PairContract } from '../types/templates/Pair/Pair'
+import { log } from '@graphprotocol/graph-ts/index'
 
 // for canto, ETH ~ CANTO, USDC ~ NOTE
 const WETH_ADDRESS = '0x826551890dc65655a0aceca109ab11abdbd7a07b'
-const USDC_WETH_PAIR = '0x1d20635535307208919f0b67c3b2065965a85aa9' // created at 224998
+const USDC_WETH_PAIR = '0x5118e2f29657a701261e401e5a25d3e814fd7cc1'
 
 export function getEthPriceInUSD(): BigDecimal {
   // fetch eth prices for each stablecoin
   let usdcPair = Pair.load(USDC_WETH_PAIR) // note is token0
-
   if (usdcPair !== null) {
     return usdcPair.token0Price
   } else {
@@ -27,6 +27,9 @@ let WHITELIST: string[] = [
   "0xeceeefcee421d8062ef8d6b4d814efe4dc898265", // ATOM
   "0x5fd55a1b9fc24967c4db09c513c3ba0dfa7ff687", // ETH
   "0x826551890dc65655a0aceca109ab11abdbd7a07b", // wCANTO
+  "0x7264610a66eca758a8ce95cf11ff5741e1fd0455", // cINU
+  "0x373a8cd983948c5c20759dfae763d3bb7790f383", // ENCANTO
+  "0x241f6a1ea972eedb05f76e25179347719e4e8b72", // RAB
 ]
 
 // minimum liquidity required to count towards tracked volume for pairs with small # of Lps
@@ -48,7 +51,7 @@ export function findEthPerToken(token: Token, stable: boolean): BigDecimal {
   for (let i = 0; i < WHITELIST.length; ++i) {
     let pairAddress = factoryContract.getPair(Address.fromString(token.id), Address.fromString(WHITELIST[i]), stable)
     // only use wCANTO/NOTE pair for NOTE pricing
-    if(token.name == "NOTE"){ pairAddress = Address.fromString('0x1d20635535307208919f0b67c3b2065965a85aa9')}
+    if(token.name == "NOTE"){ pairAddress = Address.fromString(USDC_WETH_PAIR)}
     if (pairAddress.toHexString() != ADDRESS_ZERO) {
       let pair = Pair.load(pairAddress.toHexString())
       if (pair.token0 == token.id && pair.reserveETH.gt(MINIMUM_LIQUIDITY_THRESHOLD_ETH)) {
