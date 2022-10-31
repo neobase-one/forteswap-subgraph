@@ -26,6 +26,8 @@ import {
   exponentToBigInt
 } from './helpers'
 
+import { log } from '@graphprotocol/graph-ts'
+
 function isCompleteMint(mintId: string): boolean {
   return MintEvent.load(mintId).sender !== null // sufficient checks
 }
@@ -228,9 +230,25 @@ export function handleSync(event: Sync): void {
   pair.reserve0 = convertTokenToDecimal(event.params.reserve0, token0.decimals)
   pair.reserve1 = convertTokenToDecimal(event.params.reserve1, token1.decimals)
 
-  if (pair.reserve1.notEqual(ZERO_BD)) pair.token0Price = convertTokenToDecimal(pairContract.current(Address.fromString(token1.id), exponentToBigInt(token1.decimals)), token0.decimals)
+  log.info("Pair: {}", [pair.id,])
+  if (pair.reserve1.notEqual(ZERO_BD)) {
+    let currentResult = pairContract.try_current(Address.fromString(token1.id), exponentToBigInt(token1.decimals))
+    if (currentResult.reverted) {
+      pair.token0Price = ZERO_BD
+      log.info("REVERTED: {}", [token0.id,])
+    }
+    else pair.token0Price = convertTokenToDecimal(currentResult.value, token0.decimals)
+  }
   else pair.token0Price = ZERO_BD
-  if (pair.reserve0.notEqual(ZERO_BD)) pair.token1Price = convertTokenToDecimal(pairContract.current(Address.fromString(token0.id), exponentToBigInt(token0.decimals)), token1.decimals)
+
+  if (pair.reserve0.notEqual(ZERO_BD)){
+    let currentResult = pairContract.try_current(Address.fromString(token0.id), exponentToBigInt(token0.decimals))
+    if (currentResult.reverted) {
+      pair.token1Price = ZERO_BD
+      log.info("REVERTED: {}", [token1.id,])
+    }
+    else pair.token1Price = convertTokenToDecimal(currentResult.value, token1.decimals)
+  }
   else pair.token1Price = ZERO_BD
 
   pair.save()
